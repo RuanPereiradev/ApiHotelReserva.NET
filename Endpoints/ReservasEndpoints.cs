@@ -55,6 +55,13 @@ namespace WebApplication1.Endpoints;
           return Results.BadRequest("quarto ocupado");
       }
 
+      var tiposValidos = new[] { 1, 2, 3 };
+
+      if (!tiposValidos.Contains(reserva.TipoId))
+      {
+          return Results.BadRequest("Tipo de quarto inexistente. Os tipos válidos são: 1, 2 ou 3.");
+      }
+      
       dbContext.Reservas.Add(reserva);
       await dbContext.SaveChangesAsync();
       return Results.CreatedAtRoute(GetReservaEndpointName, new{ id = reserva.Id}, reserva.ToReservaDetailsDto());
