@@ -1,0 +1,14 @@
+# GET http://localhost:5275/reservas
+
+# GET http://localhost:5275/reservas/1
+
+POST http://localhost:5275/reservas
+Content-Type: application/json
+
+{
+  "nomeCliente": "João Silva",
+  "numeroQuarto": 101,
+  "price": 250.75,
+  "entrada": "2025-06-10T14:00:00",
+  "saida": "2025-06-15T12:00:00"
+}
