@@ -44,11 +44,20 @@ namespace WebApplication1.Endpoints;
   {
       Reserva reserva =  newReserva.ToEntity();
 
+      bool existConflit = await dbContext.Reservas.AnyAsync(r =>
+        r.NumeroQuarto == reserva.NumeroQuarto &&
+        reserva.Entrada < r.Saida &&
+        reserva.Saida > r.Entrada
+      );
+
+      if (existConflit)
+      {
+          return Results.BadRequest("quarto ocupado");
+      }
+
       dbContext.Reservas.Add(reserva);
       await dbContext.SaveChangesAsync();
       return Results.CreatedAtRoute(GetReservaEndpointName, new{ id = reserva.Id}, reserva.ToReservaDetailsDto());
-
-
     
       });
 
