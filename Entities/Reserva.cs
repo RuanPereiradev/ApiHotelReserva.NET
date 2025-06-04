@@ -10,6 +10,7 @@ namespace WebApplication1.Entities
         public decimal Price { get; set; }
         public required DateTime Entrada { get; set; }
         public required DateTime Saida { get; set; }
+        public decimal FinalPrice { get; set; }
     }
 
 }

@@ -47,7 +47,6 @@ namespace WebApplication1.Data.Mapping
                 reserva.Tipo.Price,
                 reserva.Entrada,
                 reserva.Saida
-
             );
         }
 
@@ -62,7 +61,8 @@ namespace WebApplication1.Data.Mapping
                 reserva.TipoId,
                 reserva.Price,
                 reserva.Entrada,
-                reserva.Saida
+                reserva.Saida,
+                reserva.FinalPrice
             );
         }
 

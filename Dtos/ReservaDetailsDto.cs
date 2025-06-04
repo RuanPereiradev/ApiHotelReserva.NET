@@ -7,4 +7,6 @@ public record class ReservaDetailsDto(
     int TipoId,
     decimal Price,
     DateTime Entrada,
-    DateTime Saida);
+    DateTime Saida,
+    decimal FinalPrice
+    );
