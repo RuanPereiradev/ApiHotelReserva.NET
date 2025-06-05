@@ -1,6 +1,10 @@
 using System;
+using Microsoft.AspNetCore.Identity;
 
 namespace WebApplication1.Models;
 
-public record User(int Id, string Name, string Email, string Password);
+public class User : IdentityUser
+{
+    public string Document { get; set; } = string.Empty;
+}
 

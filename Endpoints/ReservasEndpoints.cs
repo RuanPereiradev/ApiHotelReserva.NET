@@ -27,7 +27,7 @@ public static class ReservasEndpoints
                     .Include(reserva => reserva.Tipo)
                     .Select(reserva => reserva.ToReservaSummaryDto())
                     .AsNoTracking()
-                   .ToListAsync());
+                   .ToListAsync()).RequireAuthorization("Admin");
 
         group.MapGet("/livres", async (ReservaStoreContext dbContext) =>
         {
