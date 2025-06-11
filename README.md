@@ -26,6 +26,29 @@ Este projeto consiste em uma API RESTful desenvolvida em .NET 8 utilizando o Min
 - Validação automática de entrada de dados
 - Documentação interativa com Swagger
 
+## 🔄 Atualizações Recentes (Autenticação e Roles)
+
+- Implementada autenticação com ASP.NET Identity usando cookie authentication e suporte a roles para controle de acesso.
+
+- Criadas roles básicas: Admin e Cliente.
+
+- Usuário padrão criado:
+
+    - Email: admin@admin.com
+
+    - Senha: Admin123@
+
+    - Role: Admin
+
+- Rotas protegidas usando o atributo [Authorize(Roles = "Admin")] para garantir que apenas administradores possam executar certas ações, como criar reservas.
+
+- Ajustes na configuração da autenticação para evitar erros de esquema e garantir funcionamento correto do login.
+
+- Usuários cadastrados via API inicialmente não recebem roles automaticamente — roles devem ser atribuídas manualmente via código (exemplo com UserManager.AddToRoleAsync).
+
+- Testes confirmaram que o usuário admin consegue acessar rotas restritas normalmente.
+
+
 ## 📦 Instalação e Configuração
 ✅ Pré-requisitos
 
