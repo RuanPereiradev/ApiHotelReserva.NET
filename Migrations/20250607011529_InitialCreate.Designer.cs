@@ -11,8 +11,8 @@ using WebApplication1.Data;
 namespace WebApplication1.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250605145853_IdentityCreate")]
-    partial class IdentityCreate
+    [Migration("20250607011529_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -148,6 +148,79 @@ namespace WebApplication1.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("WebApplication1.Entities.Reserva", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Entrada")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("FinalPrice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NomeCliente")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("NumeroQuarto")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Saida")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TipoId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TipoId");
+
+                    b.ToTable("Reservas");
+                });
+
+            modelBuilder.Entity("WebApplication1.Entities.Tipo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Tipos");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Standard",
+                            Price = 200.00m
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Deluxe",
+                            Price = 350.00m
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Suite Presidencial",
+                            Price = 1000.00m
+                        });
+                });
+
             modelBuilder.Entity("WebApplication1.Models.User", b =>
                 {
                     b.Property<string>("Id")
@@ -265,6 +338,17 @@ namespace WebApplication1.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("WebApplication1.Entities.Reserva", b =>
+                {
+                    b.HasOne("WebApplication1.Entities.Tipo", "Tipo")
+                        .WithMany()
+                        .HasForeignKey("TipoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tipo");
                 });
 #pragma warning restore 612, 618
         }

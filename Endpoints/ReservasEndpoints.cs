@@ -5,6 +5,9 @@ using WebApplication1.Data;
 using WebApplication1.Dtos;
 using WebApplication1.Entities;
 using WebApplication1.Data.Mapping;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
+using Microsoft.AspNetCore.Authorization;
 
 
 
@@ -22,14 +25,14 @@ public static class ReservasEndpoints
         .WithParameterValidation();
 
         //GET /games
-        group.MapGet("/", async (ReservaStoreContext dbContext) =>
+        group.MapGet("/", async (AppDbContext dbContext) =>
          await dbContext.Reservas
                     .Include(reserva => reserva.Tipo)
                     .Select(reserva => reserva.ToReservaSummaryDto())
                     .AsNoTracking()
-                   .ToListAsync()).RequireAuthorization("Admin");
+                   .ToListAsync()).RequireAuthorization();
 
-        group.MapGet("/livres", async (ReservaStoreContext dbContext) =>
+        group.MapGet("/livres", async (AppDbContext dbContext) =>
         {
             var todosQuartos = Enumerable.Range(1, 30).ToList();
 
@@ -46,54 +49,66 @@ public static class ReservasEndpoints
 
         );
         //GET /games/1
-        group.MapGet("/{id}", async (int id, ReservaStoreContext dbContext) =>
+        group.MapGet("/{id}", async (int id, AppDbContext dbContext) =>
         {
             Reserva? reserva = await dbContext.Reservas.FindAsync(id);
 
             return reserva is null ? Results.NotFound() : Results.Ok(reserva.ToReservaDetailsDto());
 
         })
-        .WithName(GetReservaEndpointName);
+        .WithName(GetReservaEndpointName).RequireAuthorization();
 
         //POST /reserva
-        group.MapPost("/", async (CreateReservaDto newReserva, ReservaStoreContext dbContext) =>
-    {
-        Reserva reserva = newReserva.ToEntity();
+        group.MapPost("/", async (CreateReservaDto newReserva, AppDbContext dbContext) =>
+ {
+     var validationContext = new ValidationContext(newReserva);
+     var validationResults = new List<ValidationResult>();
+     bool isValid = Validator.TryValidateObject(newReserva, validationContext, validationResults, true);
 
-        var quartosValidos = Enumerable.Range(1, 30).ToArray();
-        if (!quartosValidos.Contains(reserva.NumeroQuarto))
-        {
-            return Results.BadRequest("Escolha um quarto de 1 a 30");
-        }
+     if (!isValid)
+     {
+         return Results.BadRequest(validationResults);
+     }
 
-        bool existConflit = await dbContext.Reservas.AnyAsync(r =>
-        r.NumeroQuarto == reserva.NumeroQuarto &&
-        reserva.Entrada < r.Saida &&
-        reserva.Saida > r.Entrada
-      );
+     if (newReserva.Entrada >= newReserva.Saida)
+     {
+         return Results.BadRequest("A data de entrada deve ser anterior a data de saida");
+     }
 
+     Reserva reserva = newReserva.ToEntity();
 
+     var quartosValidos = Enumerable.Range(1, 30).ToArray();
+     if (!quartosValidos.Contains(reserva.NumeroQuarto))
+     {
+         return Results.BadRequest("Quarto de 1 a 30");
+     }
 
-        if (existConflit)
-        {
-            return Results.BadRequest("quarto ocupado");
-        }
+     bool existConflit = await dbContext.Reservas.AnyAsync(r =>
+         r.NumeroQuarto == reserva.NumeroQuarto &&
+         reserva.Entrada < r.Saida &&
+         reserva.Saida > r.Entrada
+         );
 
-        var tiposValidos = new[] { 1, 2, 3 };
+     if (existConflit)
+     {
+         return Results.BadRequest("Quartp ocupado para o periodo informado");
+     }
 
-        if (!tiposValidos.Contains(reserva.TipoId))
-        {
-            return Results.BadRequest("Tipo de quarto inexistente. Os tipos válidos são: 1, 2 ou 3.");
-        }
+     var tiposValidos = new[] { 1, 2, 3 };
+     if (!tiposValidos.Contains(reserva.TipoId))
+     {
+         return Results.BadRequest("Tipo de quarto inexistente.");
+     }
 
+     dbContext.Reservas.Add(reserva);
+     await dbContext.SaveChangesAsync();
 
+     return Results.CreatedAtRoute("GetReserva", new { id = reserva.Id }, reserva.ToReservaDetailsDto());
+ 
+ }).RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
 
-        dbContext.Reservas.Add(reserva);
-        await dbContext.SaveChangesAsync();
-        return Results.CreatedAtRoute(GetReservaEndpointName, new { id = reserva.Id }, reserva.ToReservaDetailsDto());
-
-    });   //POST /reserva
-        group.MapPost("/client", async (CreateReservaDto newReserva, ReservaStoreContext dbContext) =>
+        //POST /reserva
+        group.MapPost("/client", async (CreateReservaDto newReserva, AppDbContext dbContext) =>
     {
         Reserva reserva = newReserva.ToEntity();
 
@@ -132,7 +147,7 @@ public static class ReservasEndpoints
     });
 
 
-        group.MapPut("/{id}", async (int id, UpdateReservaDto updateReserva, ReservaStoreContext dbContext) =>
+        group.MapPut("/{id}", async (int id, UpdateReservaDto updateReserva, AppDbContext dbContext) =>
         {
             var existingReserva = await dbContext.Reservas.FindAsync(id);
 
@@ -151,7 +166,7 @@ public static class ReservasEndpoints
         });
         // DELETE /games/1
 
-        group.MapDelete("/{id}", async (int id, ReservaStoreContext dbContext) =>
+        group.MapDelete("/{id}", async (int id, AppDbContext dbContext) =>
           {
               await dbContext.Reservas
                          .Where(game => game.Id == id)

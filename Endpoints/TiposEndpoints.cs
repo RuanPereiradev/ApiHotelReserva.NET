@@ -10,7 +10,7 @@ public static class TiposEdpoints
     public static RouteGroupBuilder MapTiposEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("genres");
-        group.MapGet("/", async (ReservaStoreContext dbContext) =>
+        group.MapGet("/", async (AppDbContext dbContext) =>
             await dbContext.Tipos
                             .Select(tipo => tipo.ToDto())
                             .AsNoTracking()

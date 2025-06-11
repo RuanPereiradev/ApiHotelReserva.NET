@@ -1,40 +1,61 @@
+using System.Text;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.Dtos;
 using WebApplication1.Endpoints;
 using WebApplication1.Models;
-// using WebApplication1.Services;
+using WebApplication1.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder
-.Services.AddDbContext<AppDbContext>(
-    options => options.UseSqlite("Data Source=identity-db.db"));
+var connString = builder.Configuration.GetConnectionString("ReservaStore");
+var jwtSection = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtSettings>(jwtSection);
+var jwtSettings = jwtSection.Get<JwtSettings>();
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(connString));
 
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = "Bearer";
+    options.DefaultChallengeScheme = "Bearer";
+}).AddJwtBearer("Bearer", options =>
+{
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings!.Issuer,
+        ValidAudience = jwtSettings.Audience,
+        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(jwtSettings.Key))
+    };
+});
 
-builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
 
 builder.Services
-    .AddIdentityApiEndpoints<User>()
-    .AddEntityFrameworkStores<AppDbContext>();
+    .AddIdentity<User, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
 
-// builder.Services.AddTransient<TokenService>();
+builder.Services.AddTransient<IEmailSender<User>, FakeEmailSender<User>>();
 
-var connString = builder.Configuration.GetConnectionString("ReservaStore");
-builder.Services.AddSqlite<ReservaStoreContext>(connString);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.MapReservas();
+await CreateRolesAndAdminUserAsync(app);
 
 app.MigrateDb();
 
-
+app.MapReservas();
 
 if (app.Environment.IsDevelopment())
 {
@@ -44,9 +65,47 @@ if (app.Environment.IsDevelopment())
 
 app.MapIdentityApi<User>();
 
-// app.MapGet("/token", (TokenService service)
-//     => service.Generate(new User(1, "teste@gmail.com", "123",new[]{
-//     "student", "premium"
-//     } )));
+// Middlewares
+app.UseAuthentication();
+app.UseAuthorization();
+
+
 
 app.Run();
+
+
+async Task CreateRolesAndAdminUserAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+    string[] roles = new[] { "Admin", "Cliente" };
+
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+
+    var adminEmail = "admin@admin.com";
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+    if (adminUser == null)
+    {
+        adminUser = new User
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true
+        };
+        await userManager.CreateAsync(adminUser, "Admin123@");
+    }
+
+    if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+    {
+        await userManager.AddToRoleAsync(adminUser, "Admin");
+    }
+}
